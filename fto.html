@@ -1,3 +1,30 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Twiddle</title>
+    <style>
+        #canvas {
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+</head>
+<body>
+
+    <script type="text/javascript">
+        async function main(){
+          let pyodide = await loadPyodide();
+          await pyodide.loadPackage(["pygame-ce"], { checkIntegrity: false })
+          await pyodide.loadPackage(["numpy"], { checkIntegrity: false })
+          await pyodide.loadPackage(["scipy"], { checkIntegrity: false })
+
+          canvas = document.getElementById("canvas");
+          pyodide.canvas.setCanvas2D(canvas);
+
+          pyodide.runPythonAsync(`
 import numpy as np
 import random
 import sys
@@ -209,7 +236,7 @@ view = np.linalg.qr(np.random.randn(3, 3))[0]
 view = scipy.linalg.expm(1 / 10 * scipy.linalg.logm(view)).real
 
 
-def main():
+async def main():
     state = np.eye(len(display_matrix))
     toMove = []
 
@@ -266,8 +293,23 @@ def main():
 
         pygame.display.flip()
         clock.tick(60)
+        await asyncio.sleep(0)
 
     pygame.quit()
 
 
 main()
+
+
+
+
+  `)
+        }
+
+        main()
+      </script>
+
+        <canvas id="canvas"></canvas>
+
+</body>
+</html>

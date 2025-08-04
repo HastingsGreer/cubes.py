@@ -1,3 +1,30 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Twiddle</title>
+    <style>
+        #canvas {
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+</head>
+<body>
+
+    <script type="text/javascript">
+        async function main(){
+          let pyodide = await loadPyodide();
+          await pyodide.loadPackage(["pygame-ce"], { checkIntegrity: false })
+          await pyodide.loadPackage(["numpy"], { checkIntegrity: false })
+          await pyodide.loadPackage(["scipy"], { checkIntegrity: false })
+
+          canvas = document.getElementById("canvas");
+          pyodide.canvas.setCanvas2D(canvas);
+
+          pyodide.runPythonAsync(`
 import numpy as np
 import random
 import sys
@@ -47,8 +74,6 @@ for i in range(size):
                 colors.append(color)
 display_matrix = 200.5 + 60 * np.array(display_matrix)
 
-font = pygame.font.SysFont("arial", 126)
-fontB = pygame.font.SysFont("arial", 156)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
@@ -136,8 +161,9 @@ frames_per_turn = 8
 moves = [scipy.linalg.expm(1 / frames_per_turn * scipy.linalg.logm(x)) for x in moves]
 
 
-def main():
+async def main():
     state = np.eye(order * order * 6)
+    dejitter = np.eye(3) + np.ones((3, 3)) * .001
     toMove = []
 
     for i in range(0):
@@ -169,26 +195,30 @@ def main():
             toMove = toMove[1:]
         screen.fill(WHITE)
 
-        cube = state.real @ display_matrix
+        cube = state.real @ display_matrix @ dejitter
 
         cube = reversed(sorted(list(zip(map(tuple, cube), map(list, colors)))))
 
         for i, ((z, x, y), color) in enumerate(cube):
-            text_surface = fontB.render("●", True, BLACK)
-            text_rect = text_surface.get_rect()
-            text_rect.center = (x - 0.4 * z, y - 0.4 * z)
+            center = (x - 0.4 * z, y - 0.4 * z)
+            pygame.draw.circle(screen, BLACK, center, 50)
+            pygame.draw.circle(screen, color, center, 40)
 
-            screen.blit(text_surface, text_rect)
-            text_surface = font.render("●", True, color)
-            text_rect = text_surface.get_rect()
-            text_rect.center = (x - 0.4 * z, y - 0.4 * z)
-
-            screen.blit(text_surface, text_rect)
 
         pygame.display.flip()
         clock.tick(60)
+        await asyncio.sleep(0)
 
     pygame.quit()
-
-
 main()
+
+  `)
+        }
+
+        main()
+      </script>
+
+        <canvas id="canvas"></canvas>
+
+</body>
+</html>

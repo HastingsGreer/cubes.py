@@ -10,15 +10,11 @@ pygame.init()
 display_matrix = []
 colors = []
 
+
 import numpy as np
 
-shape = []
+shape = [ [1, 1, 1], [1, -1, -1], [-1, -1, 1], [-1, 1, -1]]
 
-for i in range(3):
-    point = np.zeros(3)
-    point[i] = 1
-    shape.append(point)
-    shape.append(-point)
 shape = np.array(shape)
 hull = scipy.spatial.ConvexHull(shape)
 
@@ -67,7 +63,7 @@ def subdivide_triangle_centers(A, B, C):
             (p1[2] + p2[2] + p3[2]) / 3,
         )
         for p in (p1, p2, p3):
-            centers.append((np.array(center) + 7 * p) /8)
+            centers.append((np.array(center) + 5 * p) / 6)
 
     return centers
 
@@ -96,9 +92,9 @@ display_matrix = 300.5 + 200 * puzzle
 
 
 def sort_by_row_sum(A, B):
-    indices = np.argsort(1 - (A.sum(axis=1) < 830), stable=True)
+    indices = np.argsort(1 - (A.sum(axis=1) < 980), stable=True)
 
-    print(sum(A.sum(axis=1) < 830))
+    print(sum(A.sum(axis=1) < 980))
     return A[indices], B[indices]
 
 
@@ -175,7 +171,7 @@ def maybe_add(arr):
     if not any(np.all(arr == u) for u in moves):
         moves.append(arr)
 
-slice_size = 3 * (9 + 6 * 3)
+slice_size = 3 * (9 + 5 * 3)
 
 print(slice_size)
 
@@ -191,7 +187,7 @@ for m in rot:
 for m in rot[1:]:
     if np.all(m @ m == np.eye(len(display_matrix))):
         continue
-    if np.all(m @ m @ m == np.eye(len(display_matrix))):
+    if np.all(m @ m  == np.eye(len(display_matrix))):
         continue
     maybe_add(m)
     maybe_add(m.T)
@@ -203,7 +199,7 @@ frames_per_turn = 14
 moves = [scipy.linalg.expm(1 / frames_per_turn * scipy.linalg.logm(x)) for x in moves]
 
 
-np.random.seed(42)
+np.random.seed(44)
 view = np.linalg.qr(np.random.randn(3, 3))[0]
 
 view = scipy.linalg.expm(1 / 10 * scipy.linalg.logm(view)).real
@@ -213,7 +209,7 @@ def main():
     state = np.eye(len(display_matrix))
     toMove = []
 
-    for i in range(0):
+    for i in range(00):
         j = random.randint(0, len(moves) - 1)
         toMove += [j] * frames_per_turn
 
@@ -246,7 +242,7 @@ def main():
             toMove = toMove[1:]
         screen.fill(WHITE)
 
-        cube = state.real @ display_matrix @ view
+        cube = .8 * state.real @ display_matrix @ view
 
         cube = list(zip(map(tuple, cube), map(list, colors)))
 
@@ -257,12 +253,12 @@ def main():
             if len(triangle) == 3:
                 triangles.append(triangle)
                 triangle = []
-        triangles = sorted(triangles)
+        triangles = sorted(triangles, key = lambda x: x[0][0][0] + x[1][0][0] + x[2][0][0])
         for triangle in triangles:
             ((z, x, y), color) = triangle[0]
             screen_space = [triangle[0][0][1:], triangle[1][0][1:], triangle[2][0][1:]]
             pygame.draw.polygon(screen, color, screen_space)
-            pygame.draw.polygon(screen, BLACK, screen_space, width=9)
+            pygame.draw.polygon(screen, BLACK, screen_space, width=6)
 
         pygame.display.flip()
         clock.tick(60)
