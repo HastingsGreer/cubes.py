@@ -57,18 +57,19 @@ def subdivide_triangle_centers(A, B, C):
     # Calculate centers as centroids
     centers = []
     for tri in triangles:
-        p1, p2, p3 = [points[idx] for idx in tri]
+        p1, p2, p3 = [np.array(points[idx]) for idx in tri]
         center = ((p1[0] + p2[0] + p3[0])/3, (p1[1] + p2[1] + p3[1])/3, (p1[2] + p2[2] + p3[2])/3)
-        centers.append(center)
+        for p in (p1, p2, p3):
+            centers.append((np.array(center) + 5 * p) /6)
 
     return centers
 
 puzzle = []
 
 pallete = []
-for i in [40, 255]:
-  for j in [40, 255]:
-    for k in [40, 255]:
+for i in [60, 230]:
+  for j in [60, 230]:
+    for k in [60, 230]:
       pallete.append((i, j, k))
 colors = []
 
@@ -97,13 +98,15 @@ def sort_by_row_sum(A, B):
     Returns:
         tuple: (A_sorted, B_sorted) both sorted by A's row sums
     """
-    indices = np.argsort(A.sum(axis=1))
+    indices = np.argsort( 1 - (A.sum(axis=1) < 830), stable=True)
+
+    print(sum(A.sum(axis=1) < 830))
     return A[indices], B[indices]
 
 display_matrix, colors = sort_by_row_sum(display_matrix, np.array(colors))
 
-font = pygame.font.SysFont("arial", 116)
-fontB = pygame.font.SysFont("arial", 136)
+font = pygame.font.SysFont("arial", 70)
+fontB = pygame.font.SysFont("arial", 30)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
@@ -157,7 +160,9 @@ def maybe_add(arr):
     if not any(np.all(arr == u) for u in moves):
         moves.append(arr)
 
-slice_size = 9 + 6 * 3
+slice_size = 3 * (9 + 6 * 3)
+
+print(slice_size)
 
 head = display_matrix[:(slice_size)]
 rot_face = solve(head)
@@ -171,8 +176,12 @@ for m in rot:
 for m in rot[1:]:
     if np.all(m @ m == np.eye(len(display_matrix))):
               continue
+    if np.all(m @ m@m == np.eye(len(display_matrix))):
+              continue
     maybe_add(m)
     maybe_add(m.T)
+maybe_add(
+    np.eye(len(display_matrix)))
 
 
 frames_per_turn = 14
@@ -186,6 +195,7 @@ view = scipy.linalg.expm(1 / 10 * scipy.linalg.logm(view)).real
 def main():
     state = np.eye(len(display_matrix))
     toMove = []
+    
 
     for i in range(0):
         j = random.randint(0, len(moves) - 1)
@@ -210,7 +220,9 @@ def main():
                             toMove += [i] * frames_per_turn
                 if event.unicode == "p":
                     toMove = []
-                    state = np.eye(len(display_matrix))
+                    toMove += [len(moves) - 1] * frames_per_turn
+                    state = state.real
+                    moves[-1] = scipy.linalg.expm(1 / frames_per_turn * scipy.linalg.logm(np.linalg.inv(state)))
         if len(toMove):
             state = state @ moves[toMove[0]]
             toMove = toMove[1:]
@@ -221,19 +233,23 @@ def main():
         
 
 
-        cube = reversed(sorted(list(zip(map(tuple, cube), map(list, colors)))))
+        cube = list(zip(map(tuple, cube), map(list, colors)))
 
-        for i, ((z, x, y), color) in enumerate(cube):
-            text_surface = fontB.render("●", True, BLACK)
-            text_rect = text_surface.get_rect()
-            text_rect.center = (x , y)
-
-            screen.blit(text_surface, text_rect)
-            text_surface = font.render("●", True, color)
-            text_rect = text_surface.get_rect()
-            text_rect.center = (x, y)
-
-            screen.blit(text_surface, text_rect)
+        
+        triangle = []
+        triangles = []
+        for pt in cube:
+            triangle.append( pt
+                    )
+            if len(triangle) == 3:
+                triangles.append(triangle)
+                triangle = []
+        triangles = sorted(triangles)
+        for triangle in triangles:
+                ((z, x, y), color) = triangle[0]
+                screen_space = [triangle[0][0][1:], triangle[1][0][1:], triangle[2][0][1:]]
+                pygame.draw.polygon(screen, color, screen_space)
+                pygame.draw.polygon(screen, BLACK, screen_space, width=6)
 
         pygame.display.flip()
         clock.tick(60)
