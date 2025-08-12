@@ -3,14 +3,16 @@ import json
 from scipy.linalg import logm, expm
 import itertools
 
-
+ 
 def rigid_perms(D, prefix=[]):
     return (
         sum(
             (
                 rigid_perms(D, prefix + [i])
-                for i in {*range(len(D))} - {*prefix}
-                if (D[prefix + [i]] @ D[i] == D[: len(prefix) + 1] @ D[len(prefix)]).all()
+                for i in range(len(D))
+                if (
+                    D[prefix + [i]] @ D[i] == D[: len(prefix) + 1] @ D[len(prefix)]
+                ).all()
             ),
             [],
         )
@@ -39,7 +41,8 @@ move[:21, :21] = slice_perms[3]
 view = np.linalg.qr(np.random.randn(3, 3))[0]
 
 with open("output.html", "w") as static_site:
-    static_site.write(f"""
+    static_site.write(
+        f"""
     <!DOCTYPE html>
     <html>
     <body>
@@ -52,17 +55,21 @@ with open("output.html", "w") as static_site:
         row.reduce((acc, _, n) => acc + A[i][n] * B[n][j], 0)))
 
     var state = {np2js(np.eye(len(sticker_coords)))}
-    const coords = {np2js(sticker_coords @ view * 90 + 255)}
+    const coords = {np2js(sticker_coords @ view * 70 + 255)}
     var moves = [state]
     document.addEventListener("keypress", (event) => {{
-    """)
+    """
+    )
     for i, generator in enumerate([move, global_perms[15], global_perms[9]]):
-        static_site.write( f"""
+        static_site.write(
+            f"""
         if (event.key == {i}) {{
             moves = (new Array(10).fill( {np2js(expm(.1 * logm(generator)))})).concat( moves);
         }}
-        """)
-    static_site.write( """
+        """
+        )
+    static_site.write(
+        """
     });
     step = () => {
         if (!moves.length) {
@@ -71,14 +78,18 @@ with open("output.html", "w") as static_site:
         }
         state = mul(state, moves.pop());
         const locations = mul(state, coords);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         drawlist = [
-    """)
+    """
+    )
     for i, color in enumerate(sticker_colors):
-        static_site.write( f"""
+        static_site.write(
+            f"""
             [...locations[{i}], 'rgb({color[0]} {color[1]} {color[2]})'], 
-        """)
-    static_site.write("""
+        """
+        )
+    static_site.write(
+        """
         ].sort((a, b) => a[0]-b[0])
         for (var elem of drawlist){
             ctx.beginPath()
@@ -93,4 +104,5 @@ with open("output.html", "w") as static_site:
     </script>
     </body>
     </html>
-    """)
+    """
+    )
