@@ -134,66 +134,59 @@ display_matrix, colors = sort_by_row_sum(display_matrix, np.array(colors))
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
-
+import numpy as np
+import functools
 def ADB_solve(D):
-    """
-    Given a matrix D of size N x M, find all pairs of A, B such that A is a permutation, B is a rotation, and AD = DB
+    print(len(D))
+    D = D - np.mean(D, axis=0, keepdims=True)
+    eye = np.eye(len(D))
 
-    equivalently, given a set of points, find all rotations that permute the points
-    """
+    norms = [np.linalg.norm(d) for d in D]
 
-    N = len(D)
-    eye = np.eye(N)
+    prefixes = []
 
-    iterations = [0]
+    for L in range(len(D) + 1):
+        PD = D[:L]
+        prefixes.append(PD[-1:] @ PD[:12].T)
 
-    def test(D, prefix):
-        iterations[0] += 1
-        D = D - np.mean(D, axis=0, keepdims=True)
-        if (
-            np.abs(np.linalg.norm(D[len(prefix) - 1]) - np.linalg.norm(D[prefix[-1]]))
-            > 0.001
-        ):
+
+    def feasible(permutation_so_far):
+        if ( np.abs(norms[len(permutation_so_far) - 1] - norms[permutation_so_far[-1]]) > 0.001):
             return False
-        if len(prefix) != len(set(prefix)):
-            return False
-        A = eye[prefix]
-        targ = eye[: len(prefix)]
-        transformed_A = A @ D
-        transformed_identity = targ @ D
-        Q = (
-            np.linalg.inv(transformed_A.T @ transformed_A + np.eye(3) * 0.000001)
-            @ transformed_A.T
-            @ transformed_identity
-        )
 
-        if np.abs(np.linalg.det(Q) + 1) < 0.001:
+        PAD = D[permutation_so_far]
+
+        if not np.max(np.abs(PAD[-1:] @ PAD[:12].T - prefixes[len(permutation_so_far)])) < .0001:
             return False
-        if len(prefix) == N + 3:
-            if np.all(A @ A == eye):
+
+        if len(permutation_so_far) == 9:
+            PD = D[:len(permutation_so_far)]
+            Q, residuals, rank, _singular_values = np.linalg.lstsq(PD, PAD)
+
+
+            if np.abs(np.linalg.det(Q) + 1) < .001:
                 return False
-            if np.all(A @ A @ A == eye):
-                return False
-        return (
-            np.max(np.abs(transformed_A.T - Q @ transformed_identity.T)) < 0.01
-        ).item()
 
-    def recursive_solve(D, prefix, out):
-        if len(prefix) == N:
-            out.append(eye[prefix])
-            return
-        for i in range(N):
-            oo = prefix + [i]
-            if test(D, oo):
-                recursive_solve(D, oo, out)
+        if len(permutation_so_far) == len(D):
+            PA = eye[permutation_so_far]
+            permutations.append(PA)
+            #rotations.append(Q)
+            return False
 
-    out = []
-    print("solving")
-    recursive_solve(D, [], out)
-    print("solved")
-    print(iterations)
-    return out
+        #return len(residuals) == 0 or (np.max(np.abs(residuals)) < 0.001).item()
+        return True
 
+    def recursive_permutations(permutation_so_far):
+        for i in range(len(D)):
+            if not i in permutation_so_far:
+                continuation = permutation_so_far + [i]
+                if feasible(continuation):
+                    recursive_permutations(continuation)
+
+    permutations = []
+    rotations = []
+    recursive_permutations([])
+    return permutations#, #rotations
 
 rot = ADB_solve(display_matrix)
 moves = []
@@ -218,8 +211,8 @@ for m in rot:
 for m in rot[1:]:
     if np.all(m @ m == np.eye(len(display_matrix))):
         continue
-    if np.all(m @ m @ m == np.eye(len(display_matrix))):
-        continue
+    #if np.all(m @ m @ m == np.eye(len(display_matrix))):
+    #    continue
     maybe_add(m)
     maybe_add(m.T)
 maybe_add(np.eye(len(display_matrix)))

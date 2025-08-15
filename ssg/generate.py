@@ -3,7 +3,7 @@ import json
 from scipy.linalg import logm, expm
 import itertools
 
- 
+
 def rigid_perms(D, prefix=[]):
     return (
         sum(

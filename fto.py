@@ -166,9 +166,14 @@ def ADB_solve(D):
     print("solved")
     print(iterations)
     return out
+from adb import ADB_solve
 
+import time
 
-rot = ADB_solve(display_matrix)
+a = time.time()
+rot = ADB_solve(display_matrix - np.mean(display_matrix))
+print(time.time() - a)
+print(len(rot))
 moves = []
 
 def maybe_add(arr):
@@ -180,7 +185,7 @@ slice_size = 3 * (9 + 6 * 3)
 print(slice_size)
 
 head = display_matrix[:(slice_size)]
-rot_face = ADB_solve(head)
+rot_face = ADB_solve(head - np.mean(head))
 template = np.eye(len(display_matrix))
 template[:slice_size, :slice_size] = rot_face[1]
 
@@ -211,7 +216,7 @@ view = scipy.linalg.expm(1 / 10 * scipy.linalg.logm(view)).real
 
 def main():
     state = np.eye(len(display_matrix))
-    toMove = []
+    toMove = [0] * frames_per_turn
 
     for i in range(0):
         j = random.randint(0, len(moves) - 1)
@@ -236,35 +241,35 @@ def main():
                             toMove += [i] * frames_per_turn
                 if event.unicode == "p":
                     toMove = []
-                    toMove += [len(moves) - 1] * frames_per_turn
+                    toMove += [len(moves) - 1] * 10 * frames_per_turn
                     state = state.real
                     moves[-1] = scipy.linalg.expm(
-                        1 / frames_per_turn * scipy.linalg.logm(np.linalg.inv(state))
+                        1 / 10 / frames_per_turn * scipy.linalg.logm(np.linalg.inv(state))
                     )
         if len(toMove):
             state = state @ moves[toMove[0]]
             toMove = toMove[1:]
-        screen.fill(WHITE)
+            screen.fill(WHITE)
 
-        cube = state.real @ display_matrix @ view
+            cube = state.real @ display_matrix @ view
 
-        cube = list(zip(map(tuple, cube), map(list, colors)))
+            cube = list(zip(map(tuple, cube), map(list, colors)))
 
-        triangle = []
-        triangles = []
-        for pt in cube:
-            triangle.append(pt)
-            if len(triangle) == 3:
-                triangles.append(triangle)
-                triangle = []
-        triangles = sorted(triangles)
-        for triangle in triangles:
-            ((z, x, y), color) = triangle[0]
-            screen_space = [triangle[0][0][1:], triangle[1][0][1:], triangle[2][0][1:]]
-            pygame.draw.polygon(screen, color, screen_space)
-            pygame.draw.polygon(screen, BLACK, screen_space, width=9)
+            triangle = []
+            triangles = []
+            for pt in cube:
+                triangle.append(pt)
+                if len(triangle) == 3:
+                    triangles.append(triangle)
+                    triangle = []
+            triangles = sorted(triangles)
+            for triangle in triangles:
+                ((z, x, y), color) = triangle[0]
+                screen_space = [triangle[0][0][1:], triangle[1][0][1:], triangle[2][0][1:]]
+                pygame.draw.polygon(screen, color, screen_space)
+                pygame.draw.polygon(screen, BLACK, screen_space, width=9)
 
-        pygame.display.flip()
+            pygame.display.flip()
         clock.tick(60)
 
     pygame.quit()

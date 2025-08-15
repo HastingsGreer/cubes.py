@@ -13,9 +13,9 @@ pygame.init()
 display_matrix = []
 colors = []
 
-order = 3
+order = 7
 
-slices = [1]
+slices = [1, 2, 3]
 
 size = order + 2
 for i in range(size):
@@ -101,6 +101,10 @@ def solve(D):
     recursive_solve(D, [], out)
     print("solved")
     return out
+
+from adb import ADB_solve
+
+solve = ADB_solve
 
 
 rot = solve(display_matrix)
